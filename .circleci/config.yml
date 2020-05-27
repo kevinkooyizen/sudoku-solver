@@ -1,0 +1,133 @@
+# PHP CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-php/ for more details
+#
+version: 2.1
+
+executors:
+    node-executor:
+        docker:
+            -   image: circleci/node:10.16.3
+        working_directory: ~/sudoku_solver-workspace
+
+jobs:
+    build:
+        executor: node-executor
+        parameters:
+            parameters-file:
+                type: string
+                default: dev
+            build-command:
+                type: string
+                default: npm run prod
+        steps:
+            - checkout
+
+            # Remove git folder to reduce workspace layer space
+            - run: sudo rm -r .git
+
+            #NPM tasks
+            - restore_cache:
+                keys:
+                    - node-v1-{{ checksum "package-lock.json" }}
+                    - node-v1-
+
+            # Run node rebuild to cater towards updated node
+            - run: npm rebuild node-sass
+
+            - run: npm install
+            - save_cache:
+                key: node-v1-{{ checksum "package-lock.json" }}
+                paths:
+                    - node_modules
+            - run: << parameters.build-command >>
+
+            # reduce node files being saved to workspace
+            - run: curl -sfL https://install.goreleaser.com/github.com/tj/node-prune.sh | bash && ./bin/node-prune
+
+            - persist_to_workspace:
+                  root: ./
+                  paths:
+                      - ./
+    code-sniffer:
+        executor: php-executor
+        steps:
+            - attach_workspace:
+                  at: ./
+            - run:
+                  name: Running PHP Code Sniffer
+                  command: ./vendor/bin/phpcs -pd memory_limit=-1 --warning-severity=6 --exclude=PSR2.Methods.FunctionCallSignature --extensions=php --ignore=*/vendors/* --standard=PSR2 app
+    # Node executor is used here as it is a faster docker image to pull from circle ci preset docker images
+    deploy:
+        executor: node-executor
+        parameters:
+            environment:
+                type: string
+                default: dev
+            ssh-host:
+                type: env_var_name
+                default: SSH_DEV_HOST
+        steps:
+            -   attach_workspace:
+                    at: ./
+            -   run: mkdir ~/.ssh
+            -   run: sudo apt install rsync
+            -   run:
+                    name: Make remote server a known host
+                    command: ssh-keyscan ${<< parameters.ssh-host >>} >> ~/.ssh/known_hosts
+            -   run:
+                    name: Deploy Over SSH rsync
+                    command: rsync -avcp -e ssh --delete --exclude=node_modules /home/circleci/sudoku_solver-workspace/ $SSH_USER@${<< parameters.ssh-host >>}:/home/$SSH_USER/$FOLDER_NAME/
+workflows:
+    version: 2.1
+    build-and-deploy-dev:
+        jobs:
+            - build:
+                  context: ssh-globals
+                  parameters-file: dev
+                  build-command: npm run dev
+                  filters:
+                      branches:
+                          only:
+                              - dev
+            - deploy:
+                  context: ssh-globals
+                  ssh-host: SSH_DEV_HOST
+                  environment: dev
+                  requires:
+                      - build
+    build-and-deploy-staging:
+        jobs:
+            - build:
+                  context: ssh-globals
+                  parameters-file: staging
+                  build-command: npm run prod
+                  filters:
+                      branches:
+                          only:
+                              - staging
+            - code-sniffer:
+                  requires:
+                      - build
+            - deploy:
+                  context: ssh-globals
+                  ssh-host: SSH_STAGING_HOST
+                  environment: prod
+                  requires:
+                      - code-sniffer
+    build-and-deploy-prod:
+        jobs:
+            - build:
+                  context: ssh-globals
+                  parameters-file: prod
+                  build-command: npm run build
+                  filters:
+                      branches:
+                          only:
+                              - master
+            - deploy:
+                  context: ssh-globals
+                  ssh-host: SSH_PROD_HOST
+                  environment: prod
+                  requires:
+                      - build
