@@ -1,11 +1,22 @@
 <template>
     <main>
-        <button @click="solve">Solve</button>
-        <ul>
+        <ul class="mt-5">
             <li v-for="(cell,cellIndex) in cells">
-                <span v-model="cells[cellIndex].value" @click="validateCell(cell)">{{ cell.value }}</span>
+                <input v-model="cells[cellIndex].value" @click="validateCell(cell)" :disabled="solving">
             </li>
         </ul>
+        <div class="d-flex justify-content-center">
+            <button @click="solve" class="btn btn-success" :disabled="solving">
+                <span v-show="solving"><i class="fas fa-spinner fa-spin"></i>&nbsp;</span>
+                <span v-if="solving">Solving</span>
+                <span v-else>Solve</span>
+            </button>
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <button @click="resetCells" class="btn btn-primary" :disabled="solving">
+                Reset Board
+            </button>
+        </div>
         <div class="note">Your browser doesn't support CSS Grid. You'll need <a href="http://gridbyexample.com/browsers/">a browser that does</a> to use this app.</div>
     </main>
 </template>
@@ -66,7 +77,8 @@
                 ],
                 failedAttempts: [],
                 attempts: [],
-                delayTime: 500,
+                delayTime: 10,
+                solving: false,
             }
         },
 
@@ -85,39 +97,54 @@
         },
 
         methods: {
+
+            /**
+             * Attempt to solve sudoku board
+             */
             async solve() {
-                for (const cellKey in this.cells) {
-                    if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value !== '') {
-                        continue;
-                    }
-                    let cell = this.cells[cellKey];
-                    cell.value = 1; // Start at 1
-
-                    // Check if value that is about to be inserted is valid
-                    while (!this.validateCell(cell) || this.failedAttempts.includes(JSON.stringify(this.cells))) {
-                        cell.value ++;
+                try {
+                    this.solving = true;
+                    if (this.solved) {
+                        return;
                     }
 
-                    // Invalid attempt
-                    if (cell.value > 9) {
-                        // Store failed value of current attempt
-                        cell.value = '';
-                        this.failedAttempts.push(JSON.stringify(this.cells));
+                    for (const cellKey in this.cells) {
 
-                        // Return to previous attempts until finding a fresh attempt that is not a failed attempt
-                        let count = 1;
-                        this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
-
-                        while (this.failedAttempts.includes(JSON.stringify(this.cells))) {
-                            count++;
-                            this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
+                        if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value !== '') {
+                            continue;
                         }
-                        await this.solve();
+                        let cell = this.cells[cellKey];
+                        cell.value = 1; // Start at 1
+
+                        // Check if value that is about to be inserted is valid
+                        while (!this.validateCell(cell) || this.failedAttempts.includes(JSON.stringify(this.cells))) {
+                            cell.value ++;
+                        }
+
+                        // Invalid attempt
+                        if (cell.value > 9) {
+                            // Store failed value of current attempt
+                            cell.value = '';
+                            this.failedAttempts.push(JSON.stringify(this.cells));
+
+                            // Return to previous attempts until finding a fresh attempt that is not a failed attempt
+                            let count = 1;
+                            this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
+
+                            while (this.failedAttempts.includes(JSON.stringify(this.cells))) {
+                                count++;
+                                this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
+                            }
+                            await this.solve();
+                        }
+
+                        this.attempts.push(JSON.stringify(this.cells));
+
+                        await delay(this.delayTime);
                     }
-
-                    this.attempts.push(JSON.stringify(this.cells));
-
-                    await delay(this.delayTime);
+                }
+                finally {
+                    this.solving = false;
                 }
             },
 
@@ -314,16 +341,16 @@
              * @param array
              * @returns {boolean}
              */
-            hasDuplicates(array)
-            {
+            hasDuplicates(array) {
                 return new Set(array).size !== array.length;
             },
 
             /**
-             * Populate cells
+             * Clear all cells
              */
-            populateCells()
-            {
+            resetCells() {
+                this.failedAttempts = [];
+                this.attempts = [];
                 this.cells = [];
                 for(let i = 1; i <= 81; i++) {
                     this.cells.push({id: i, value: ''});
@@ -332,7 +359,7 @@
         },
 
         created() {
-            this.populateCells();
+            this.resetCells();
         }
     }
 </script>
@@ -380,11 +407,20 @@
         display: flex;
         align-items: center;
         justify-content: center;
-
     }
 
     span {
         margin-top: 0.4rem;
+    }
+
+    input {
+        flex: 1;
+        min-width: 2rem;
+        text-align: center;
+        border: none;
+        outline: none;
+        height: 90%;
+        transition: all .24s ease-in-out;
     }
 
     .note {
