@@ -1,5 +1,6 @@
 <template>
     <main>
+        <button @click="solve">Solve</button>
         <ul>
             <li v-for="(cell,cellIndex) in cells">
                 <span v-model="cells[cellIndex].value" @click="validateCell(cell)">{{ cell.value }}</span>
@@ -10,6 +11,8 @@
 </template>
 
 <script>
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+
     export default {
         data () {
             return {
@@ -61,6 +64,8 @@
                         columns: [7,8,9],
                     },
                 ],
+                failedAttempts: [],
+                attempts: [],
             }
         },
 
@@ -69,10 +74,48 @@
         },
 
         methods: {
+            resetCells() {
+                for (const cellKey in this.cells) {
+                    if (!this.cells.hasOwnProperty(cellKey)) {
+                        continue;
+                    }
+                    this.cells[cellKey].value = '';
+                }
+            },
+
+            async solve() {
+                for (const cellKey in this.cells) {
+                    if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value !== '') {
+                        continue;
+                    }
+                    let cell = this.cells[cellKey];
+                    cell.value = 1;
+
+                    // Check if value that is about to be inserted is valid
+                    while (!this.validateCell(cell) || this.failedAttempts.includes(JSON.stringify(this.cells))) {
+                        cell.value ++;
+                    }
+
+                    if (cell.value > 9) {
+                        this.failedAttempts.push(JSON.stringify(JSON.parse(this.attempts[this.attempts.length - 1])));
+                        this.populateCells();
+                        await this.solve();
+                    }
+                    this.attempts.push(JSON.stringify(this.cells));
+
+                    await delay(250);
+                }
+            },
+
+            /**
+             * Get values in block
+             * @param block
+             * @returns {array}
+             */
             valuesInBlock(block) {
                 let values = [];
                 for (const cellKey in this.cells) {
-                    if (!this.cells.hasOwnProperty(cellKey)) {
+                    if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value === '') {
                         continue;
                     }
                     if (this.getBlock(this.cells[cellKey]) === block) {
@@ -82,16 +125,26 @@
                 return values;
             },
 
+            /**
+             * Validate block values in cell
+             * @param cell
+             * @returns {boolean}
+             */
             validateBlock(cell) {
                 let block = this.getBlock(cell);
                 let valuesInBlock = this.valuesInBlock(block);
                 return !this.hasDuplicates(valuesInBlock);
             },
 
+            /**
+             * Get values in row
+             * @param row
+             * @returns {array}
+             */
             valuesInRow(row) {
                 let values = [];
                 for (const cellKey in this.cells) {
-                    if (!this.cells.hasOwnProperty(cellKey)) {
+                    if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value === '') {
                         continue;
                     }
                     if (this.getRow(this.cells[cellKey]) === row) {
@@ -101,16 +154,26 @@
                 return values;
             },
 
+            /**
+             * Validate row values in cell
+             * @param cell
+             * @returns {boolean}
+             */
             validateRow(cell) {
                 let row = this.getRow(cell);
                 let valuesInRow = this.valuesInRow(row);
                 return !this.hasDuplicates(valuesInRow);
             },
 
+            /**
+             * Get values in column
+             * @param column
+             * @returns {array}
+             */
             valuesInColumn(column) {
                 let values = [];
                 for (const cellKey in this.cells) {
-                    if (!this.cells.hasOwnProperty(cellKey)) {
+                    if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value === '') {
                         continue;
                     }
                     if (this.getColumn(this.cells[cellKey]) === column) {
@@ -120,6 +183,11 @@
                 return values;
             },
 
+            /**
+             * Validate column values in cell
+             * @param cell
+             * @returns {boolean}
+             */
             validateColumn(cell) {
                 let column = this.getColumn(cell);
                 let valuesInColumn = this.valuesInColumn(column);
@@ -127,9 +195,7 @@
             },
 
             validateCell(cell) {
-                if (!this.validateBlock(cell) || !this.validateRow(cell) || !this.validateColumn(cell)) {
-                    alert('error');
-                }
+                return !(!this.validateBlock(cell) || !this.validateRow(cell) || !this.validateColumn(cell));
             },
 
             /**
@@ -207,7 +273,7 @@
              * @param parameter2
              * @returns {boolean}
              */
-            arrayValueExists: function (array, searchValue, parameter, searchValue2, parameter2) {
+            arrayValueExists(array, searchValue, parameter, searchValue2, parameter2) {
                 return !!array.find(x => x[parameter].includes(searchValue)  && x[parameter2].includes(searchValue2));
 
             },
@@ -221,7 +287,7 @@
              * @param parameter2
              * @returns {*}
              */
-            eleInArray: function (array, searchValue, parameter, searchValue2, parameter2) {
+            eleInArray(array, searchValue, parameter, searchValue2, parameter2) {
                 let element = {};
                 if (this.arrayValueExists(array, searchValue, parameter, searchValue2, parameter2)) {
                     element = array.find(x => x[parameter].includes(searchValue)  && x[parameter2].includes(searchValue2));
@@ -229,15 +295,30 @@
                 return element;
             },
 
-            hasDuplicates(arr)
+            /**
+             * Check if array has duplicates
+             * @param array
+             * @returns {boolean}
+             */
+            hasDuplicates(array)
             {
-                return new Set(arr).size !== arr.length;
-            }
+                return new Set(array).size !== array.length;
+            },
+
+            /**
+             * Populate cells
+             */
+            populateCells()
+            {
+                this.cells = [];
+                for(let i = 1; i <= 81; i++) {
+                    this.cells.push({id: i, value: ''});
+                }
+            },
         },
+
         created() {
-            for(let i = 1; i <= 81; i++) {
-                this.cells.push({id: i, value: i});
-            }
+            this.populateCells();
         }
     }
 </script>
