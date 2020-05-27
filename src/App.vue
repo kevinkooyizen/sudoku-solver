@@ -389,8 +389,8 @@
 
     ul {
         display: grid;
-        grid-template-columns: repeat(9, 5vw);
-        grid-template-rows: repeat(9, 5vw);
+        grid-template-columns: repeat(9, 4vw);
+        grid-template-rows: repeat(9, 4vw);
         justify-content: center;
         align-content: center;
         grid-gap: 0rem;
