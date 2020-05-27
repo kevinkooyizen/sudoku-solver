@@ -49,14 +49,6 @@ jobs:
                   root: ./
                   paths:
                       - ./
-    code-sniffer:
-        executor: php-executor
-        steps:
-            - attach_workspace:
-                  at: ./
-            - run:
-                  name: Running PHP Code Sniffer
-                  command: ./vendor/bin/phpcs -pd memory_limit=-1 --warning-severity=6 --exclude=PSR2.Methods.FunctionCallSignature --extensions=php --ignore=*/vendors/* --standard=PSR2 app
     # Node executor is used here as it is a faster docker image to pull from circle ci preset docker images
     deploy:
         executor: node-executor
@@ -96,25 +88,6 @@ workflows:
                   environment: dev
                   requires:
                       - build
-    build-and-deploy-staging:
-        jobs:
-            - build:
-                  context: ssh-globals
-                  parameters-file: staging
-                  build-command: npm run prod
-                  filters:
-                      branches:
-                          only:
-                              - staging
-            - code-sniffer:
-                  requires:
-                      - build
-            - deploy:
-                  context: ssh-globals
-                  ssh-host: SSH_STAGING_HOST
-                  environment: prod
-                  requires:
-                      - code-sniffer
     build-and-deploy-prod:
         jobs:
             - build:
