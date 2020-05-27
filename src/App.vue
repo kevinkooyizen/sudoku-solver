@@ -1,8 +1,8 @@
 <template>
     <main>
         <ul>
-            <li v-for="cell in cells">
-                <span @click="getProperties(cell)">{{ cell.value }}</span>
+            <li v-for="(cell,cellIndex) in cells">
+                <span v-model="cells[cellIndex].value" @click="validateCell(cell)">{{ cell.value }}</span>
             </li>
         </ul>
         <div class="note">Your browser doesn't support CSS Grid. You'll need <a href="http://gridbyexample.com/browsers/">a browser that does</a> to use this app.</div>
@@ -69,25 +69,74 @@
         },
 
         methods: {
-            validateBlock(cell) {
+            valuesInBlock(block) {
+                let values = [];
+                for (const cellKey in this.cells) {
+                    if (!this.cells.hasOwnProperty(cellKey)) {
+                        continue;
+                    }
+                    if (this.getBlock(this.cells[cellKey]) === block) {
+                        values.push(parseInt(this.cells[cellKey].value));
+                    }
+                }
+                return values;
+            },
 
+            validateBlock(cell) {
+                let block = this.getBlock(cell);
+                let valuesInBlock = this.valuesInBlock(block);
+                return !this.hasDuplicates(valuesInBlock);
+            },
+
+            valuesInRow(row) {
+                let values = [];
+                for (const cellKey in this.cells) {
+                    if (!this.cells.hasOwnProperty(cellKey)) {
+                        continue;
+                    }
+                    if (this.getRow(this.cells[cellKey]) === row) {
+                        values.push(parseInt(this.cells[cellKey].value));
+                    }
+                }
+                return values;
             },
 
             validateRow(cell) {
+                let row = this.getRow(cell);
+                let valuesInRow = this.valuesInRow(row);
+                return !this.hasDuplicates(valuesInRow);
+            },
 
+            valuesInColumn(column) {
+                let values = [];
+                for (const cellKey in this.cells) {
+                    if (!this.cells.hasOwnProperty(cellKey)) {
+                        continue;
+                    }
+                    if (this.getColumn(this.cells[cellKey]) === column) {
+                        values.push(parseInt(this.cells[cellKey].value));
+                    }
+                }
+                return values;
             },
 
             validateColumn(cell) {
-
+                let column = this.getColumn(cell);
+                let valuesInColumn = this.valuesInColumn(column);
+                return !this.hasDuplicates(valuesInColumn);
             },
 
-            getProperties(cell) {
-                let block = 'block: ' + this.getBlock(cell);
-                let row = 'row: ' + this.getRow(cell);
-                let column = 'column: ' + this.getColumn(cell);
+            validateCell(cell) {
+                if (!this.validateBlock(cell) || !this.validateRow(cell) || !this.validateColumn(cell)) {
+                    alert('error');
+                }
             },
 
-            /*Get which block the cell resides in*/
+            /**
+             * Get which block the cell resides in
+             * @param cell
+             * @returns {int}
+             */
             getBlock(cell) {
                 let row = this.getRow(cell);
                 let column = this.getColumn(cell);
@@ -95,7 +144,11 @@
                 return block.id;
             },
 
-            /*Get which row the cell resides in*/
+            /**
+             * Get which row the cell resides in
+             * @param cell
+             * @returns {int}
+             */
             getRow(cell) {
                 let row = 1;
                 let cellId = cell.id;
@@ -106,7 +159,11 @@
                 return row;
             },
 
-            /*Get which column the cell resides in*/
+            /**
+             * Get which column the cell resides in
+             * @param cell
+             * @returns {int}
+             */
             getColumn(cell) {
                 let cellId = this.reduceToSingleDigit(cell.id);
                 if (cellId % 9 === 0) {
@@ -171,6 +228,11 @@
                 }
                 return element;
             },
+
+            hasDuplicates(arr)
+            {
+                return new Set(arr).size !== arr.length;
+            }
         },
         created() {
             for(let i = 1; i <= 81; i++) {
