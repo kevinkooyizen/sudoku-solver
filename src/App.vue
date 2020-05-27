@@ -66,44 +66,58 @@
                 ],
                 failedAttempts: [],
                 attempts: [],
+                delayTime: 500,
             }
         },
 
         computed: {
-
-        },
-
-        methods: {
-            resetCells() {
+            solved() {
                 for (const cellKey in this.cells) {
                     if (!this.cells.hasOwnProperty(cellKey)) {
                         continue;
                     }
-                    this.cells[cellKey].value = '';
+                    if (!this.cells[cellKey].value) {
+                        return false;
+                    }
                 }
-            },
+                return true;
+            }
+        },
 
+        methods: {
             async solve() {
                 for (const cellKey in this.cells) {
                     if (!this.cells.hasOwnProperty(cellKey) || this.cells[cellKey].value !== '') {
                         continue;
                     }
                     let cell = this.cells[cellKey];
-                    cell.value = 1;
+                    cell.value = 1; // Start at 1
 
                     // Check if value that is about to be inserted is valid
                     while (!this.validateCell(cell) || this.failedAttempts.includes(JSON.stringify(this.cells))) {
                         cell.value ++;
                     }
 
+                    // Invalid attempt
                     if (cell.value > 9) {
-                        this.failedAttempts.push(JSON.stringify(JSON.parse(this.attempts[this.attempts.length - 1])));
-                        this.populateCells();
+                        // Store failed value of current attempt
+                        cell.value = '';
+                        this.failedAttempts.push(JSON.stringify(this.cells));
+
+                        // Return to previous attempts until finding a fresh attempt that is not a failed attempt
+                        let count = 1;
+                        this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
+
+                        while (this.failedAttempts.includes(JSON.stringify(this.cells))) {
+                            count++;
+                            this.cells = JSON.parse(this.attempts[this.attempts.length - count]);
+                        }
                         await this.solve();
                     }
+
                     this.attempts.push(JSON.stringify(this.cells));
 
-                    await delay(250);
+                    await delay(this.delayTime);
                 }
             },
 
