@@ -2,7 +2,7 @@
     <main>
         <ul class="mt-5">
             <li v-for="(cell,cellIndex) in cells">
-                <input v-model="cells[cellIndex].value" @click="validateCell(cell)" :disabled="solving">
+                <input v-model="cells[cellIndex].value" @click="validateCell(cell)" :disabled="solving" @keypress="isNumber">
             </li>
         </ul>
         <div class="d-flex justify-content-center">
@@ -79,6 +79,7 @@
                 attempts: [],
                 delayTime: 10,
                 solving: false,
+                cellInputs: [],
             }
         },
 
@@ -97,6 +98,17 @@
         },
 
         methods: {
+
+            // Only allow input of numbers
+            isNumber: function (evt) {
+                evt = (evt) ? evt : window.event;
+                let charCode = (evt.which) ? evt.which : evt.keyCode;
+                if ((charCode > 31 && (charCode < 48 || charCode > 57))) {
+                    evt.preventDefault();
+                } else {
+                    return true;
+                }
+            },
 
             /**
              * Attempt to solve sudoku board
@@ -356,6 +368,25 @@
                     this.cells.push({id: i, value: ''});
                 }
             },
+        },
+
+        watch: {
+            cells: {
+                handler() {
+                    for(let i = 0; i < 81; i++) {
+                        let cellValue = parseInt(this.cells[i].value);
+                        if (cellValue > 9 || cellValue === 0) {
+                            this.cells = JSON.parse(this.cellInputs[this.cellInputs.length - 1]);
+                            return;
+                        }
+                    }
+
+                    if (!this.cellInputs.includes(JSON.stringify(this.cells))) {
+                        this.cellInputs.push(JSON.stringify(this.cells));
+                    }
+                },
+                deep: true,
+            }
         },
 
         created() {
