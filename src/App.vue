@@ -2,11 +2,11 @@
     <main>
         <ul class="mt-5">
             <li v-for="(cell,cellIndex) in cells">
-                <input v-model="cells[cellIndex].value" @click="validateCell(cell)" :disabled="solving" @keypress="isNumber">
+                <input v-model="cells[cellIndex].value" :disabled="solving" @keypress="isNumber">
             </li>
         </ul>
         <div class="d-flex justify-content-center">
-            <button @click="solve" class="btn btn-success" :disabled="solving">
+            <button @click="validateAndSolveCells" class="btn btn-success" :disabled="solving">
                 <span v-show="solving"><i class="fas fa-spinner fa-spin"></i>&nbsp;</span>
                 <span v-if="solving">Solving</span>
                 <span v-else>Solve</span>
@@ -364,16 +364,30 @@
                 this.failedAttempts = [];
                 this.attempts = [];
                 this.cells = [];
-                for(let i = 1; i <= 81; i++) {
+                for (let i = 1; i <= 81; i++) {
                     this.cells.push({id: i, value: ''});
                 }
+            },
+
+            /**
+             * Validate and solve all cells
+             */
+            validateAndSolveCells() {
+                for (let i = 0; i < 81; i++) {
+                    let cell = this.cells[i];
+                    if (!this.validateCell(cell)) {
+                        alert('Invalid board');
+                        return;
+                    }
+                }
+                this.solve();
             },
         },
 
         watch: {
             cells: {
                 handler() {
-                    for(let i = 0; i < 81; i++) {
+                    for (let i = 0; i < 81; i++) {
                         let cellValue = parseInt(this.cells[i].value);
                         if (cellValue > 9 || cellValue === 0) {
                             this.cells = JSON.parse(this.cellInputs[this.cellInputs.length - 1]);
