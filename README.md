@@ -1,6 +1,6 @@
 # Sudoku Solver
 
-> A simple sudoku solver built with Vue. [Demo](sudoku.zenency.com)
+> A simple sudoku solver built with Vue. [Demo](http://sudoku.zenency.com)
 
 ## Build Setup
 
