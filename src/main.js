@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
 
+Vue.config.productionTip = false
+
 // Import bootstrap css
 import 'bootstrap/dist/css/bootstrap.css';
 
@@ -14,6 +16,5 @@ import { dom } from '@fortawesome/fontawesome-svg-core'
 dom.watch()
 
 new Vue({
-  el: '#app',
-  render: h => h(App)
-})
+  render: h => h(App),
+}).$mount('#app')
